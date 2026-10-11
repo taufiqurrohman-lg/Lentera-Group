@@ -17,10 +17,6 @@
 </head>
 <body>
 
-    <html lang="id">
-<head>
-    <!-- ... isi head Anda ... -->
-</head>
 <body> <!-- 1. INI TAG PEMBUKA BODY ANDA -->
 
     <!-- 🔐 2. TEMPEL KOTAK LOGIN DI SINI (Tepat di bawah tag body) -->
@@ -40,10 +36,12 @@
             <button type="submit" id="btnAuthAction" class="btn-submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Masuk Ke Dasbor</button>
         </form>
         
-        <p style="text-align: center; margin-top: 20px; font-size: 13px; color: #718096;">
+                <!-- ➕ REVISI TOMBOL TOGGLE PERALIHAN AMAN DAN DIJAMIN MERESPONS -->
+        <div style="text-align: center; margin-top: 20px; font-size: 13px; color: #718096;">
             <span id="toggleAuthText">Belum punya akun pengelola?</span> 
-            <a href="#" id="toggleAuthLink" style="color: #2a5298; font-weight: 600; text-decoration: none;">Daftar Akun</a>
-        </p>
+            <button type="button" id="toggleAuthLink" style="background: none; border: none; color: #1e3c72; font-weight: 700; font-family: inherit; cursor: pointer; padding: 0; font-size: 13px; text-decoration: underline; margin-left: 5px;">Daftar Akun</button>
+        </div>
+
     </div>
 
 <div id="app-dashboard" style="display: none;">
@@ -221,35 +219,47 @@
 
 
     <!-- Script Utama -->
-         <!-- ================= 🔐 INTEGRASI FIREBASE SECURITY PLATFORM ================= -->
-    <script type="module">
-            import { initializeApp } from "https://gstatic.com";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://gstatic.com";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://gstatic.com";
+    <!-- ================= 🔐 INTEGRASI FIREBASE SECURITY PLATFORM (FIXED) ================= -->
+<!-- Pemuatan SDK Firebase v8 CDN Resmi & Lengkap -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+    // Konfigurasi rahasia dengan authDomain yang sudah diperbaiki
+   const firebaseConfig = {
+  apiKey: "AIzaSyD12cuCPI3sme89t4DvPK1Qkwzd74dI8KE",
+  authDomain: "lentera-group.firebaseapp.com",
+  databaseURL: "https://lentera-group-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "lentera-group",
+  storageBucket: "lentera-group.firebasestorage.app",
+  messagingSenderId: "344992508800",
+  appId: "1:344992508800:web:c7ca163beeaeeadc79af65",
+  measurementId: "G-VX9L1R3F84"
+};
+    
+    // Inisialisasi Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-
-        // ⚠️ AMBIL DARI NOTEPAD: Tempelkan konfigurasi rahasia dari proyek Firebase Anda di sini
-        const firebaseConfig = {
-            apiKey: "AIzaSyD12cuCPI3sme89t4DvPK1Qkwzd74dI8KE",
-            authDomain: "lentera-group.firebaseapp.com",
-            projectId: "lentera-group",
-            storageBucket: "lentera-group.firebasestorage.app",
-            messagingSenderId: "344992508800",
-            appId: "1:344992508800:web:c7ca163beeaeeadc79af65",
-            measurementId: "G-VX9L1R3F84"
-        };
-
-        // Mengaktifkan Mesin Cloud Keamanan Google
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // Bagikan variabel ke file app.js secara aman agar sinkron lintas perangkat
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.firebaseAuthUtils = { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, addDoc, getDocs, updateDoc, deleteDoc, doc };
-    </script>
-
-    <script src="app.js"></script>
+    // Bagikan variabel ke file app.js secara aman
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.firebaseAuthUtils = { 
+        createUserWithEmailAndPassword: (a, e, p) => a.createUserWithEmailAndPassword(e, p), 
+        signInWithEmailAndPassword: (a, e, p) => a.signInWithEmailAndPassword(e, p), 
+        onAuthStateChanged: (a, f) => a.onAuthStateChanged(f), 
+        signOut: (a) => a.signOut(), 
+        collection: (d, ...path) => d.collection(path.join('/')), 
+        addDoc: (c, data) => c.add(data), 
+        getDocs: (c) => c.get(), 
+        updateDoc: (ref, data) => ref.update(data), 
+        deleteDoc: (ref) => ref.delete(),
+        doc: (d, ...path) => d.doc(path.join('/'))
+    };
+</script>
+<script src="app.js"></script>
 </body>
 </html>

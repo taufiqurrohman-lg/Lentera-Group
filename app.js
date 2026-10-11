@@ -1,25 +1,31 @@
-// Ambil database terpisah dari LocalStorage
-// --- AREA CLOUD FIREBASE BARU (MENGGANTIKAN LOCALSTORAGE LAMA) ---
-const auth = window.firebaseAuth;
-const db = window.firebaseDb;
+// ============================================================================
+// LENTERA GROUP - MULTI-FITUR PRO (APP.JS FULL CLEAN CODE)
+// ============================================================================
+
+const firebaseAuthInstance = window.firebaseAuth;
+const firebaseDbInstance = window.firebaseDb;
 const utils = window.firebaseAuthUtils;
 
 let transactions = [];
 let jobs = [];
 let currentUserId = null;
+let expenseChartInstance = null;
 
 // SISTEM PROTEKSI OTOMATIS: MENGUNCI LAYAR JIKA BELUM LOGIN & SINKRONISASI DATA HP-PC
-if (auth) {
-    utils.onAuthStateChanged(auth, function(user) {
+if (firebaseAuthInstance) {
+    utils.onAuthStateChanged(firebaseAuthInstance, function(user) {
+        const appDashboard = document.getElementById('app-dashboard');
+        const authContainer = document.getElementById('auth-container');
+        
         if (user) {
             currentUserId = user.uid;
-            document.getElementById('app-dashboard').style.display = 'block';
-            document.getElementById('auth-container').style.display = 'none';
-            loadDataFromCloud(); // Otomatis ambil data terbaru dari server cloud Google
+            if (appDashboard) appDashboard.style.display = 'block';
+            if (authContainer) authContainer.style.display = 'none';
+            loadDataFromCloud(); 
         } else {
             currentUserId = null;
-            document.getElementById('app-dashboard').style.display = 'none';
-            document.getElementById('auth-container').style.display = 'block';
+            if (appDashboard) appDashboard.style.display = 'none';
+            if (authContainer) authContainer.style.display = 'block';
         }
     });
 }
@@ -28,22 +34,20 @@ if (auth) {
 async function loadDataFromCloud() {
     if (!currentUserId) return;
     try {
-        const queryTrx = await utils.getDocs(utils.collection(db, "users", currentUserId, "transactions"));
+        const queryTrx = await utils.getDocs(utils.collection(firebaseDbInstance, "users", currentUserId, "transactions"));
         transactions = [];
         queryTrx.forEach(doc => { transactions.push({ firestoreId: doc.id, ...doc.data() }); });
-
-        const queryJob = await utils.getDocs(utils.collection(db, "users", currentUserId, "jobs"));
+        
+        const queryJob = await utils.getDocs(utils.collection(firebaseDbInstance, "users", currentUserId, "jobs"));
         jobs = [];
         queryJob.forEach(doc => { jobs.push({ firestoreId: doc.id, ...doc.data() }); });
-
+        
         updateKeuanganUI();
         updateJobUI();
     } catch (error) {
         console.error("Gagal sinkronisasi data cloud: ", error);
     }
 }
-
-let expenseChartInstance = null;
 
 // DOM Elemen Keuangan
 const transactionForm = document.getElementById('transactionForm');
@@ -70,26 +74,24 @@ const exportJobBtn = document.getElementById('exportJobBtn');
 
 // --- FIX SISTEM TOGGLE TAB NAVIGATION MENU ---
 function switchTab(tabName, element) {
-    // Sembunyikan semua tab content
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    // Hilangkan kelas active dari semua tombol tab
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     
-    // Tampilkan tab yang dipilih
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-    // Tambahkan kelas active ke tombol yang diklik
-    element.classList.add('active');
-
-    // Jika masuk ke tab keuangan, render ulang grafiknya agar pas di layar
+    const targetTab = document.getElementById(`tab-${tabName}`);
+    if (targetTab) targetTab.classList.add('active');
+    if (element) element.classList.add('active');
+    
     if(tabName === 'keuangan') {
         updateKeuanganUI();
     } else if (tabName === 'job') {
         updateJobUI();
     }
 }
+window.switchTab = switchTab;
 
 // --- HELPER FORMAT RUPIAH ACCOUNTING (INPUT & DISPLAY) ---
 function initAccountingInput(inputElement) {
+    if (!inputElement) return;
     inputElement.addEventListener('input', function() {
         let numberString = this.value.replace(/[^0-9]/g, '');
         if (numberString === "") { this.value = ""; return; }
@@ -100,19 +102,17 @@ initAccountingInput(amountInput);
 initAccountingInput(jobPriceInput);
 initAccountingInput(jobDPInput);
 
-
 function parseRupiahToNumber(string) {
+    if (!string) return 0;
     let clean = string.replace(/[^0-9]/g, '');
     return clean ? parseFloat(clean) : 0;
 }
 
 // ================= LOGIKA MENU KEUANGAN =================
-
-// --- PROSES HAPUS CATATAN KEUANGAN DARI SERVER CLOUD secara AMAN ---
 async function deleteTransaction(firestoreId) {
     if (!confirm("Hapus catatan transaksi ini dari cloud database secara permanen?")) return;
     try {
-        await utils.deleteDoc(utils.doc(db, "users", currentUserId, "transactions", firestoreId));
+        await utils.deleteDoc(utils.doc(firebaseDbInstance, "users", currentUserId, "transactions", firestoreId));
         transactions = transactions.filter(trx => trx.firestoreId !== firestoreId);
         updateKeuanganUI();
     } catch (e) { 
@@ -121,26 +121,25 @@ async function deleteTransaction(firestoreId) {
 }
 window.deleteTransaction = deleteTransaction;
 
-
 function updateChart() {
     const canvas = document.getElementById('expenseChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const expenses = transactions.filter(trx => trx.type === 'expense');
-
     const categoryTotals = {};
+    
     expenses.forEach(trx => {
         const cat = trx.description.trim();
         const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
         categoryTotals[formattedCat] = (categoryTotals[formattedCat] || 0) + trx.amount;
     });
-
+    
     const labels = Object.keys(categoryTotals);
     const dataValues = Object.values(categoryTotals);
-
+    
     if (expenseChartInstance) { expenseChartInstance.destroy(); }
     if (labels.length === 0) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
-
+    
     expenseChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -162,7 +161,7 @@ function updateKeuanganUI() {
     if (!historyTableBody) return;
     historyTableBody.innerHTML = '';
     let totalBalance = 0, totalIncome = 0, totalExpense = 0;
-
+    
     const sortedTransactions = [...transactions].sort((a, b) => b.id - a.id);
     sortedTransactions.forEach(trx => {
         const row = document.createElement('tr');
@@ -175,67 +174,50 @@ function updateKeuanganUI() {
             <td style="font-weight: 500;">${trx.description}</td>
             <td>${typeBadge}</td>
             <td class="text-right ${isIncome ? 'text-income' : 'text-expense'}">${isIncome ? '+' : '-'} Rp ${trx.amount.toLocaleString('id-ID')}</td>
-            <td class="text-center"><button class="btn-delete" onclick="deleteTransaction(${trx.id})">Hapus</button></td>
+            <td class="text-center"><button class="btn-delete" onclick="deleteTransaction('${trx.firestoreId}')">Hapus</button></td>
         `;
         historyTableBody.appendChild(row);
-
+        
         if (isIncome) { totalBalance += trx.amount; totalIncome += trx.amount; }
         else { totalBalance -= trx.amount; totalExpense += trx.amount; }
     });
-
+    
     if(balanceDisplay) balanceDisplay.innerText = totalBalance < 0 ? '- Rp ' + Math.abs(totalBalance).toLocaleString('id-ID') : 'Rp ' + totalBalance.toLocaleString('id-ID');
     if(totalIncomeDisplay) totalIncomeDisplay.innerText = 'Rp ' + totalIncome.toLocaleString('id-ID');
     if(totalExpenseDisplay) totalExpenseDisplay.innerText = 'Rp ' + totalExpense.toLocaleString('id-ID');
     updateChart();
 }
 
-transactionForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const numericAmount = parseRupiahToNumber(amountInput.value);
-    if (isNaN(numericAmount) || numericAmount <= 0) return;
-
-           // --- PROSES KIRIM DATA TRANSAKSI BARU KE SERVER CLOUD GOOGLE ---
+if (transactionForm) {
+    transactionForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const numericAmount = parseRupiahToNumber(amountInput.value);
+        if (isNaN(numericAmount) || numericAmount <= 0) return;
+        
         const newTrxData = {
             id: Date.now(),
             description: descriptionInput.value,
             amount: numericAmount,
             type: typeInput.value
         };
-
+        
         try {
-            const docRef = await utils.addDoc(utils.collection(db, "users", currentUserId, "transactions"), newTrxData);
+            const collectionRef = utils.collection(firebaseDbInstance, "users", currentUserId, "transactions");
+            const docRef = await collectionRef.add(newTrxData);
             transactions.push({ firestoreId: docRef.id, ...newTrxData });
             updateKeuanganUI();
+            transactionForm.reset();
         } catch (err) { 
             alert("Koneksi gagal! Gagal menyimpan data transaksi ke server cloud."); 
         }
-
-    transactionForm.reset();
-});
-
-exportBtn.addEventListener('click', function() {
-    if (transactions.length === 0) { alert('Tidak ada data.'); return; }
-    let csvContent = "Tanggal;Deskripsi Transaksi;Jenis;Nominal\n";
-    transactions.forEach(trx => {
-        const date = new Date(trx.id).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        csvContent += `${date};${trx.description.replace(/;/g, ',')};${trx.type === 'income' ? 'Pemasukan' : 'Pengeluaran'};${trx.amount}\n`;
     });
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `Laporan_Keuangan_BizBalance_${new Date().toISOString().slice(0,10)}.csv`);
-    link.click();
-});
+}
 
-
-// ================= LOGIKA MENU JOB MASUK (JASA) =================
-
-// --- LOGIKA UTAMA MONITOR JASA BERBASIS SERVER CLOUD GOOGLE ---
-
+// ================= LOGIKA UTAMA MONITOR JASA CLOUD =================
 async function deleteJob(firestoreId) {
     if (!confirm("Hapus data order jasa ini secara permanen dari server cloud?")) return;
     try {
-        await utils.deleteDoc(utils.doc(db, "users", currentUserId, "jobs", firestoreId));
+        await utils.deleteDoc(utils.doc(firebaseDbInstance, "users", currentUserId, "jobs", firestoreId));
         jobs = jobs.filter(job => job.firestoreId !== firestoreId);
         updateJobUI();
     } catch (e) { 
@@ -248,8 +230,7 @@ async function changeJobStatus(firestoreId, newStatus) {
     try {
         const targetJob = jobs.find(j => j.firestoreId === firestoreId);
         if (!targetJob) return;
-
-        // Otomatisasi pembukuan kas pelunasan ke cloud saat diubah ke status 'Selesai'
+        
         if (newStatus === 'done' && targetJob.status !== 'done') {
             const sisaPelunasan = targetJob.price - (targetJob.dp || 0);
             const sudahAda = transactions.some(trx => trx.description.includes(`[Pelunasan Jasa]`) && trx.amount === sisaPelunasan);
@@ -261,14 +242,15 @@ async function changeJobStatus(firestoreId, newStatus) {
                     amount: sisaPelunasan,
                     type: 'income'
                 };
-                const docTrxRef = await utils.addDoc(utils.collection(db, "users", currentUserId, "transactions"), newTrxData);
+                const trxCollectionRef = utils.collection(firebaseDbInstance, "users", currentUserId, "transactions");
+                const docTrxRef = await trxCollectionRef.add(newTrxData);
                 transactions.push({ firestoreId: docTrxRef.id, ...newTrxData });
                 updateKeuanganUI();
             }
         }
-
-        // Sinkronisasi status pengerjaan baru langsung ke internet server
-        await utils.updateDoc(utils.doc(db, "users", currentUserId, "jobs", firestoreId), { status: newStatus });
+        
+        const jobDocRef = utils.doc(firebaseDbInstance, "users", currentUserId, "jobs", firestoreId);
+        await utils.updateDoc(jobDocRef, { status: newStatus });
         jobs = jobs.map(j => { if (j.firestoreId === firestoreId) j.status = newStatus; return j; });
         updateJobUI();
     } catch (e) { 
@@ -277,73 +259,48 @@ async function changeJobStatus(firestoreId, newStatus) {
 }
 window.changeJobStatus = changeJobStatus;
 
-
-
 function updateJobUI() {
     if (!jobTableBody) return;
     jobTableBody.innerHTML = '';
-        // ➕ HITUNG OTOMATIS OMZET DARI JOB YANG SELESAI
-    let totalJobRevenue = 0;
-    jobs.forEach(job => {
-        if (job.status === 'done') {
-            totalJobRevenue += job.price;
-        }
-    });
-    if (totalJobRevenueDisplay) {
-        totalJobRevenueDisplay.innerText = 'Rp ' + totalJobRevenue.toLocaleString('id-ID');
-    }
-
     
-    // Mengurutkan otomatis berdasarkan kronologi Tanggal, Bulan, dan Tahun Deadline
-    const sortedJobs = [...jobs].sort((a, b) => {
-        const dateA = new Date(a.deadline);
-        const dateB = new Date(b.deadline);
-        return dateA - dateB;
-    });
-
+    let totalJobRevenue = 0;
+    jobs.forEach(job => { if (job.status === 'done') totalJobRevenue += job.price; });
+    if (totalJobRevenueDisplay) totalJobRevenueDisplay.innerText = 'Rp ' + totalJobRevenue.toLocaleString('id-ID');
+    
+    const sortedJobs = [...jobs].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     sortedJobs.forEach(job => {
         const row = document.createElement('tr');
         const formattedDeadline = new Date(job.deadline).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        let statusClass = job.status === 'progress' ? 'status-progress' : (job.status === 'done' ? 'status-done' : 'status-pending');
         
-        let statusClass = 'status-pending';
-        if(job.status === 'progress') statusClass = 'status-progress';
-        if(job.status === 'done') statusClass = 'status-done';
-
-                   // FIX KODE SEJAJAR & RATA TENGAH (CENTER)
-               row.innerHTML = `
+        row.innerHTML = `
             <td style="text-align: center;"><strong>${formattedDeadline}</strong></td>
             <td style="text-align: center;">${job.client}</td>
             <td style="text-align: center; color: #718096; font-size: 13px;">${job.address || '-'}</td>
             <td style="text-align: center; font-weight: 500; color: #1e3c72;">${job.service}</td>
             <td class="text-right" style="font-weight: 600;">Rp ${job.price.toLocaleString('id-ID')}</td>
-            <!-- ➕ SISIPAN KOLOM DATA DP BARU RATA KANAN DENGAN JARAK AMAN -->
             <td class="text-right" style="font-weight: 600; padding-right: 15px; color: #3b82f6;">Rp ${(job.dp || 0).toLocaleString('id-ID')}</td>
             <td class="text-center">
-                <select class="status-select ${statusClass}" onchange="changeJobStatus(${job.id}, this.value)">
+                <select class="status-select ${statusClass}" onchange="changeJobStatus('${job.firestoreId}', this.value)">
                     <option value="pending" ${job.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
                     <option value="progress" ${job.status === 'progress' ? 'selected' : ''}>🔵 Diproses</option>
                     <option value="done" ${job.status === 'done' ? 'selected' : ''}>✅ Selesai</option>
                 </select>
             </td>
-            <td class="text-center">
-                <button class="btn-delete" onclick="deleteJob(${job.id})">Hapus</button>
-            </td>
+            <td class="text-center"><button class="btn-delete" onclick="deleteJob('${job.firestoreId}')">Hapus</button></td>
         `;
-
         jobTableBody.appendChild(row);
     });
 }
 
-jobForm.addEventListener('submit', async function(e) {
-
-    e.preventDefault();
-           const numericPrice = parseRupiahToNumber(jobPriceInput.value);
+if (jobForm) {
+    jobForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const numericPrice = parseRupiahToNumber(jobPriceInput.value);
         if (isNaN(numericPrice) || numericPrice <= 0) return;
+        const numericDP = parseRupiahToNumber(jobDPInput.value) || 0;
         
-        const numericDP = parseRupiahToNumber(jobDPInput.value) || 0; // Baca nominal DP, default 0 jika kosong
-
-        // Memasukkan data baru secara lengkap ke daftar Job Jasa
-                const newJobData = {
+        const newJobData = {
             id: Date.now(),
             client: clientNameInput.value,
             service: jobServiceInput.value,
@@ -353,13 +310,12 @@ jobForm.addEventListener('submit', async function(e) {
             deadline: jobDeadlineInput.value,
             status: 'pending'
         };
-
+        
         try {
-            // Tulis data order jasa baru langsung ke Google Cloud Database Server
-            const docJobRef = await utils.addDoc(utils.collection(db, "users", currentUserId, "jobs"), newJobData);
+            const collectionRef = utils.collection(firebaseDbInstance, "users", currentUserId, "jobs");
+            const docJobRef = await collectionRef.add(newJobData);
             jobs.push({ firestoreId: docJobRef.id, ...newJobData });
-
-            // Otomatisasi pembukuan uang muka ke keuangan cloud secara aman
+            
             if (numericDP > 0) {
                 const newTrxData = {
                     id: Date.now() + 1,
@@ -367,23 +323,38 @@ jobForm.addEventListener('submit', async function(e) {
                     amount: numericDP,
                     type: 'income'
                 };
-                const docTrxRef = await utils.addDoc(utils.collection(db, "users", currentUserId, "transactions"), newTrxData);
+                const trxCollectionRef = utils.collection(firebaseDbInstance, "users", currentUserId, "transactions");
+                const docTrxRef = await trxCollectionRef.add(newTrxData);
                 transactions.push({ firestoreId: docTrxRef.id, ...newTrxData });
             }
-
-            loadDataFromCloud(); // Refresh otomatis agar HP & PC sinkron seketika
+            loadDataFromCloud(); 
             jobForm.reset();
         } catch (err) { 
             alert("Gagal mendaftarkan data order jasa baru ke server cloud."); 
         }
+    });
+}
 
+// ================= INTERKONEKSI TOMBOL EKSPOR DATA CSV =================
+if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+        if (transactions.length === 0) { alert('Tidak ada data transaksi.'); return; }
+        let csvContent = "Tanggal;Deskripsi Transaksi;Jenis;Nominal\n";
+        transactions.forEach(trx => {
+            const date = new Date(trx.id).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            csvContent += `${date};${trx.description.replace(/;/g, ',')};${trx.type === 'income' ? 'Pemasukan' : 'Pengeluaran'};${trx.amount}\n`;
+        });
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", `Laporan_Keuangan_${new Date().toISOString().slice(0,10)}.csv`);
+        link.click();
+    });
+}
 
-});
-
-// ➕ FUNGSIONALITAS EKSPOR EXCEL/CSV UNTUK DATA ORDER JASA
 if (exportJobBtn) {
     exportJobBtn.addEventListener('click', function() {
-        if (jobs.length === 0) { alert('Tidak ada data order jasa yang bisa diekspor.'); return; }
+        if (jobs.length === 0) { alert('Tidak ada data order jasa.'); return; }
         let csvContent = "Deadline;Nama Pelanggan;Alamat;Layanan Jasa;Nilai Kontrak;Status\n";
         jobs.forEach(job => {
             const date = new Date(job.deadline).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -400,3 +371,97 @@ if (exportJobBtn) {
         link.click();
     });
 }
+
+// ================= 🔐 SISTEM KEAMANAN & PENGENDALI PANEL AKSES AKUN (FIXED & CLEAN) =================
+document.addEventListener("DOMContentLoaded", function() {
+    let isLoginMode = true;
+    
+    const authForm = document.getElementById('authForm');
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    const authTitle = document.getElementById('auth-title');
+    const btnAuthAction = document.getElementById('btnAuthAction');
+    const toggleAuthLink = document.getElementById('toggleAuthLink');
+    const toggleAuthText = document.getElementById('toggleAuthText');
+    const btnLogout = document.getElementById('btnLogout');
+    const authContainer = document.getElementById('auth-container');
+    const appDashboard = document.getElementById('app-dashboard');
+
+    if (toggleAuthLink) {
+        toggleAuthLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            isLoginMode = !isLoginMode;
+            
+            if (!isLoginMode) {
+                if (authTitle) authTitle.innerText = "📝 Registrasi Akun Baru Bisnis";
+                if (btnAuthAction) btnAuthAction.innerText = "Buat Akun Bisnis Aman";
+                if (toggleAuthText) toggleAuthText.innerText = "Sudah memiliki akun pengelola?";
+                if (toggleAuthLink) toggleAuthLink.innerText = "Masuk Di Sini";
+            } else {
+                if (authTitle) authTitle.innerText = "🔐 Login Pemilik Bisnis";
+                if (btnAuthAction) btnAuthAction.innerText = "Masuk Ke Dasbor";
+                if (toggleAuthText) toggleAuthText.innerText = "Belum punya akun pengelola?";
+                if (toggleAuthLink) toggleAuthLink.innerText = "Daftar Akun";
+            }
+        });
+    }
+
+   if (authForm) {
+        authForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Membersihkan spasi tak terlihat di email dan mengubah ke huruf kecil
+            const email = authEmail.value.trim().toLowerCase();
+            const password = authPassword.value;
+            
+            if (password.length < 6) {
+                alert("Sistem Keamanan Google Mewajibkan Password Minimal 6 Karakter!");
+                return;
+            }
+
+            if (!isLoginMode) {
+                // Proses Pendaftaran Akun Baru
+                firebaseAuthInstance.createUserWithEmailAndPassword(email, password)
+                    .then(() => { 
+                        alert("Akun Bisnis Berhasil Dibuat dan Dilindungi Sistem Cloud!"); 
+                        authForm.reset(); 
+                        if (toggleAuthLink) toggleAuthLink.click(); 
+                    })
+                    .catch(err => {
+                        alert("Gagal Mendaftar: " + err.message);
+                    });
+            } else {
+                // Proses Login ke Dasbor dengan Penanganan Error Spesifik
+                firebaseAuthInstance.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        alert("Akses Diterima! Selamat datang di Dasbor Lentera Group.");
+                        currentUserId = userCredential.user.uid;
+                        if (authContainer) authContainer.style.display = 'none';
+                        if (appDashboard) appDashboard.style.display = 'block';
+                        loadDataFromCloud();
+                    })
+                    .catch(err => {
+                        // Menampilkan informasi error yang jelas di konsol dan layar
+                        console.error("Firebase Auth Error Code:", err.code);
+                        console.error("Firebase Auth Error Message:", err.message);
+                        
+                        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+                            alert("Password Salah! Periksa kembali huruf besar/kecil pada password Anda.");
+                        } else if (err.code === 'auth/user-not-found') {
+                            alert("Email belum terdaftar! Silakan klik 'Daftar Akun' terlebih dahulu.");
+                        } else if (err.code === 'auth/invalid-email') {
+                            alert("Format penulisan email tidak valid.");
+                        } else {
+                            alert("Akses Ditolak: " + err.message);
+                        }
+                    });
+            }
+        });
+    }
+
+    if (btnLogout) {
+        btnLogout.addEventListener('click', function() {
+            firebaseAuthInstance.signOut().then(() => { alert("Sesi Ditutup. Anda Keluar dengan Aman!"); });
+        });
+    }
+});
