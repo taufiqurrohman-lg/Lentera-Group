@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lentera Group - Solusi Keuangan & Jasa UMKM</title>
+    <!-- Menghubungkan Google Fonts -->
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Menghubungkan File CSS External -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Pustaka Grafik Chart.js Resmi & Stabil -->
+    <!-- CDN Chart.js v4 UMD Resmi & Stabil -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <html lang="id">
+<head>
+    <!-- ... isi head Anda ... -->
+</head>
+<body> <!-- 1. INI TAG PEMBUKA BODY ANDA -->
+
+    <!-- 🔐 2. TEMPEL KOTAK LOGIN DI SINI (Tepat di bawah tag body) -->
+    <div id="auth-container" class="container" style="max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(30, 60, 114, 0.05);">
+        <h2 id="auth-title" style="text-align: center; color: #1e3c72; font-weight: 700;">🔐 Login Pemilik Bisnis</h2>
+        <p style="text-align: center; color: #718096; font-size: 13px; margin-bottom: 20px;">Lentera Group Security Protocol</p>
+        
+        <form id="authForm">
+            <div class="form-group">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #718096;">Email Resmi Bisnis</label>
+                <input type="email" id="authEmail" placeholder="nama@bisnis.com" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;" required>
+            </div>
+            <div class="form-group" style="margin-top: 15px; margin-bottom: 20px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #718096;">Password Akun</label>
+                <input type="password" id="authPassword" placeholder="••••••••" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;" required>
+            </div>
+            <button type="submit" id="btnAuthAction" class="btn-submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Masuk Ke Dasbor</button>
+        </form>
+        
+        <p style="text-align: center; margin-top: 20px; font-size: 13px; color: #718096;">
+            <span id="toggleAuthText">Belum punya akun pengelola?</span> 
+            <a href="#" id="toggleAuthLink" style="color: #2a5298; font-weight: 600; text-decoration: none;">Daftar Akun</a>
+        </p>
+    </div>
+
+<div id="app-dashboard" style="display: none;">
+
+    <!-- Header / Navigasi Premium -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <span class="brand-icon">💼</span>
+                <h1>Lentera Group <span class="badge-umkm">Multi-Fitur Pro</span></h1>
+            </div>
+            <!-- Menu Navigasi Tab -->
+            <nav class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('keuangan', this)">📊 Catatan Keuangan</button>
+                <button class="tab-btn" onclick="switchTab('job', this)">📋 Catatan Job Masuk</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container">
+        
+        <!-- ================= TAB 1: CATATAN KEUANGAN ================= -->
+        <div id="tab-keuangan" class="tab-content active">
+            <!-- Grid Ringkasan Keuangan -->
+            <section class="dashboard-grid">
+                <div class="card-balance">
+                    <p class="card-label">Total Saldo Bisnis</p>
+                    <h2 id="balanceDisplay">Rp 0</h2>
+                </div>
+                <div class="card-stats color-income">
+                    <p class="card-label">Total Pemasukan</p>
+                    <h3 id="totalIncomeDisplay">Rp 0</h3>
+                </div>
+                <div class="card-stats color-expense">
+                    <p class="card-label">Total Pengeluaran</p>
+                    <h3 id="totalExpenseDisplay">Rp 0</h3>
+                </div>
+            </section>
+
+            <!-- Konten Utama: Form Keuangan & Grafik -->
+            <div class="content-layout">
+                <section class="content-card">
+                    <h3 class="card-title">➕ Input Transaksi Bisnis</h3>
+                    <form id="transactionForm">
+                        <div class="form-group">
+                            <label for="description">Nama Transaksi / Kategori</label>
+                            <input type="text" id="description" placeholder="Contoh: Penjualan Produk, Stok Bahan, Sewa Ruko" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="amount">Nominal (Rp)</label>
+                                <input type="text" id="amount" placeholder="Rp 0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="type">Jenis Arus Kas</label>
+                                <select id="type" required>
+                                    <option value="income">Pemasukan (+)</option>
+                                    <option value="expense">Pengeluaran (-)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit">Simpan Transaksi</button>
+                    </form>
+                </section>
+
+                <section class="content-card">
+                    <h3 class="card-title">📊 Analisis Pengeluaran UMKM</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tabel Jurnal Keuangan -->
+            <section class="content-card">
+                <div class="history-header">
+                    <h3 class="card-title" style="margin-bottom: 0;">📜 Jurnal & Riwayat Transaksi</h3>
+                    <button id="exportBtn" class="btn-export">📥 Ekspor ke Excel (CSV)</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="umkm-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Deskripsi Transaksi</th>
+                                <th>Tipe</th>
+                                <th class="text-right">Nominal</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= TAB 2: CATATAN JOB MASUK ================= -->
+        <div id="tab-job" class="tab-content">
+            <div class="content-layout" style="grid-template-columns: 1fr;">
+                <!-- Form Input Job Jasa Baru -->
+                <section class="content-card">
+                    <h3 class="card-title">➕ Registrasi Job / Jasa Masuk</h3>
+                    <form id="jobForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="clientName">Nama Pelanggan / Instansi</label>
+                                <input type="text" id="clientName" placeholder="Contoh: PT. Maju Jaya / Bpk. Budi" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jobService">Jenis Jasa / Proyek</label>
+                                <input type="text" id="jobService" placeholder="Contoh: Desain Logo, Service AC, Cuci Mobil" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="clientAddress">Alamat Lengkap Pelanggan</label>
+                            <input type="text" id="clientAddress" placeholder="Contoh: Jl. Merdeka No. 45, Jakarta Pusat" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="jobPrice">Nilai Kontrak/Harga (Rp)</label>
+                                <input type="text" id="jobPrice" placeholder="Rp 0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jobDeadline">Batas Waktu (Deadline)</label>
+                                <input type="date" id="jobDeadline" required>
+                            </div>
+                                                    <!-- ➕ SISIPI INPUT DP BARU -->
+                        <div class="form-group">
+                            <label for="jobDP">Uang Muka / DP (Rp)</label>
+                            <input type="text" id="jobDP" placeholder="Rp 0 (Isi 0 jika tanpa DP)">
+                        </div>
+
+                        </div>
+                        <button type="submit" class="btn-submit">Daftarkan Job Jasa</button>
+                    </form>
+                                    <!-- ➕ RINGKASAN DATA OMZET JASA BARU -->
+                <div class="form-row" style="margin-top: 25px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="card-stats" style="border: 1px solid #edf2f7; padding: 15px; border-radius: 12px; box-shadow: none;">
+                        <p class="card-label" style="font-size: 11px; margin-bottom: 5px;">Total Omzet Jasa Selesai</p>
+                        <h3 id="totalJobRevenueDisplay" style="color: #10b981; font-size: 22px; font-weight: 700;">Rp 0</h3>
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button type="button" id="exportJobBtn" class="btn-export" style="width: 100%; height: 50px;">📥 Ekspor Data Jasa ke Excel (CSV)</button>
+                    </div>
+                </div>
+
+                </section>
+            </div>
+
+            <!-- Tabel Pelacakan Progress Job -->
+            <section class="content-card" style="margin-top: 20px;">
+                <h3 class="card-title">📋 Monitor & Status Order Jasa</h3>
+                <div class="table-responsive">
+                    <table class="umkm-table">
+                        <thead>
+                            <tr>
+                                <th>Deadline</th>
+                                <th>Pelanggan</th>
+                                <th>Alamat</th>
+                                <th>Layanan Jasa</th>
+                                <th class="text-right">Nilai Kontrak</th>
+                                <th class="text-right">DP / Uang Muka</th>
+                                <th class="text-center">Status Kerja</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+    </div>
+
+
+    <!-- Script Utama -->
+         <!-- ================= 🔐 INTEGRASI FIREBASE SECURITY PLATFORM ================= -->
+    <script type="module">
+            import { initializeApp } from "https://gstatic.com";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://gstatic.com";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://gstatic.com";
+
+
+        // ⚠️ AMBIL DARI NOTEPAD: Tempelkan konfigurasi rahasia dari proyek Firebase Anda di sini
+        const firebaseConfig = {
+            apiKey: "AIzaSyD12cuCPI3sme89t4DvPK1Qkwzd74dI8KE",
+            authDomain: "lentera-group.firebaseapp.com",
+            projectId: "lentera-group",
+            storageBucket: "lentera-group.firebasestorage.app",
+            messagingSenderId: "344992508800",
+            appId: "1:344992508800:web:c7ca163beeaeeadc79af65",
+            measurementId: "G-VX9L1R3F84"
+        };
+
+        // Mengaktifkan Mesin Cloud Keamanan Google
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Bagikan variabel ke file app.js secara aman agar sinkron lintas perangkat
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseAuthUtils = { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, addDoc, getDocs, updateDoc, deleteDoc, doc };
+    </script>
+
+    <script src="app.js"></script>
+</body>
+</html>
